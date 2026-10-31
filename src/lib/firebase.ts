@@ -1,44 +1,145 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth, connectAuthEmulator } from "firebase/auth";
+import {
+  getAuth,
+  Auth,
+  connectAuthEmulator,
+  browserLocalPersistence,
+  setPersistence,
+} from "firebase/auth";
 import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
 
 /**
- * Web configuration for Planora AI Firebase project.
- * Project ID: planora-ai-f3e0b
+ * Sanitizes and trims environment variable strings, stripping accidental outer quotes.
  */
-export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDummyKeyForDevelopmentAndTesting00",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "planora-ai-f3e0b.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "planora-ai-f3e0b",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "planora-ai-f3e0b.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456",
-};
+function cleanEnv(val?: string | null): string {
+  if (!val) return "";
+  return val.trim().replace(/^["']|["']$/g, "");
+}
 
 /**
- * Evaluates whether an API key is a genuine, potentially active key
+ * Evaluates whether a value is an unconfigured template string, placeholder, or dummy value.
+ */
+export function isPlaceholderValue(val?: string | null): boolean {
+  if (!val) return true;
+  const trimmed = cleanEnv(val);
+  if (!trimmed) return true;
+  const lower = trimmed.toLowerCase();
+  return (
+    lower.includes("your_") ||
+    lower.includes("placeholder") ||
+    lower.includes("dummy") ||
+    lower.includes("example") ||
+    lower.includes("changeme") ||
+    lower.includes("<your") ||
+    lower.includes("xxx") ||
+    lower === "undefined" ||
+    lower === "null" ||
+    lower.includes("...")
+  );
+}
+
+/**
+ * Evaluates whether an API key is a genuine, potentially active Firebase Web API key
  * rather than a placeholder, template string, or dummy development value.
  */
 export function isRealFirebaseApiKey(key?: string | null): boolean {
   if (!key) return false;
-  const trimmed = key.trim();
+  const trimmed = cleanEnv(key);
   if (trimmed.length < 20) return false;
-  if (trimmed.includes("your_")) return false;
-  if (trimmed.includes("placeholder")) return false;
-  if (trimmed.includes("dummy") || trimmed.includes("Dummy")) return false;
-  if (trimmed.includes("example")) return false;
+  if (isPlaceholderValue(trimmed)) return false;
   if (trimmed === "AIzaSyDummyKeyForDevelopmentAndTesting00") return false;
   return true;
 }
 
-// Check if real config or placeholder
-export const isFirebaseConfigured = Boolean(
-  (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true" ||
-    isRealFirebaseApiKey(process.env.NEXT_PUBLIC_FIREBASE_API_KEY)) &&
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-  !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID.includes("your_") &&
-  !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID.includes("placeholder")
-);
+const rawApiKey = cleanEnv(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+const rawAuthDomain = cleanEnv(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN);
+const rawProjectId = cleanEnv(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+const rawStorageBucket = cleanEnv(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+const rawMessagingSenderId = cleanEnv(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID);
+const rawAppId = cleanEnv(process.env.NEXT_PUBLIC_FIREBASE_APP_ID);
+
+/**
+ * Validates required variables before initializing Firebase on the client.
+ * Strictly verifies variables needed by Planora AI: apiKey, projectId, authDomain.
+ */
+export function validateFirebaseClientConfig(): {
+  isValid: boolean;
+  isEmulator: boolean;
+  missingVariables: string[];
+  placeholderVariables: string[];
+  issues: string[];
+} {
+  const isEmulator = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
+  if (isEmulator) {
+    return {
+      isValid: true,
+      isEmulator: true,
+      missingVariables: [],
+      placeholderVariables: [],
+      issues: [],
+    };
+  }
+
+  const missingVariables: string[] = [];
+  const placeholderVariables: string[] = [];
+  const issues: string[] = [];
+
+  if (!rawApiKey) {
+    missingVariables.push("NEXT_PUBLIC_FIREBASE_API_KEY");
+  } else if (!isRealFirebaseApiKey(rawApiKey)) {
+    placeholderVariables.push("NEXT_PUBLIC_FIREBASE_API_KEY");
+    issues.push("NEXT_PUBLIC_FIREBASE_API_KEY is using a placeholder or development dummy string.");
+  }
+
+  if (!rawProjectId) {
+    missingVariables.push("NEXT_PUBLIC_FIREBASE_PROJECT_ID");
+  } else if (isPlaceholderValue(rawProjectId)) {
+    placeholderVariables.push("NEXT_PUBLIC_FIREBASE_PROJECT_ID");
+    issues.push("NEXT_PUBLIC_FIREBASE_PROJECT_ID is using a placeholder string.");
+  }
+
+  if (rawAuthDomain && isPlaceholderValue(rawAuthDomain)) {
+    placeholderVariables.push("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN");
+    issues.push("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN is using a placeholder string.");
+  }
+
+  const isValid = missingVariables.length === 0 && placeholderVariables.length === 0;
+
+  return {
+    isValid,
+    isEmulator: false,
+    missingVariables,
+    placeholderVariables,
+    issues,
+  };
+}
+
+/**
+ * Evaluates whether Firebase is completely and correctly configured for client-side operations.
+ */
+export const isFirebaseConfigured: boolean = validateFirebaseClientConfig().isValid;
+
+/**
+ * Web configuration for Planora AI Firebase project.
+ * Project ID: planora-ai-f3e0b
+ * Never replaces missing production credentials with fake credentials.
+ */
+export const firebaseConfig = {
+  apiKey:
+    rawApiKey ||
+    (process.env.NODE_ENV === "test" ? "AIzaSyDummyKeyForDevelopmentAndTesting00" : ""),
+  authDomain:
+    rawAuthDomain ||
+    (rawProjectId ? `${rawProjectId}.firebaseapp.com` : "planora-ai-f3e0b.firebaseapp.com"),
+  projectId: rawProjectId || "planora-ai-f3e0b",
+  storageBucket:
+    rawStorageBucket ||
+    (rawProjectId ? `${rawProjectId}.firebasestorage.app` : "planora-ai-f3e0b.firebasestorage.app"),
+  ...(rawMessagingSenderId && !isPlaceholderValue(rawMessagingSenderId)
+    ? { messagingSenderId: rawMessagingSenderId }
+    : {}),
+  ...(rawAppId && !isPlaceholderValue(rawAppId) ? { appId: rawAppId } : {}),
+};
 
 export function getFirebaseConfigDiagnostics(): {
   isConfigured: boolean;
@@ -46,70 +147,123 @@ export function getFirebaseConfigDiagnostics(): {
   authDomain: string;
   hasValidApiKey: boolean;
   isEmulator: boolean;
+  missingVariables: string[];
+  placeholderVariables: string[];
   statusMessage: string;
 } {
-  const isEmulator = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
-  const hasValidApiKey = isRealFirebaseApiKey(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+  const validation = validateFirebaseClientConfig();
   const projectId = firebaseConfig.projectId;
   const authDomain = firebaseConfig.authDomain;
 
   let statusMessage = "Firebase Authentication is fully configured.";
-  if (isEmulator) {
+  if (validation.isEmulator) {
     statusMessage = "Firebase Local Emulator is active (http://localhost:9099).";
-  } else if (!hasValidApiKey) {
-    statusMessage =
-      "Firebase Web API key is not configured or using a development placeholder. Update NEXT_PUBLIC_FIREBASE_API_KEY in .env.local or Vercel.";
+  } else if (validation.missingVariables.length > 0) {
+    statusMessage = `Firebase configuration incomplete: missing ${validation.missingVariables.join(", ")}.`;
+  } else if (validation.placeholderVariables.length > 0) {
+    statusMessage = `Firebase configuration incomplete: ${validation.placeholderVariables.join(", ")} is using a placeholder string. Set valid credentials in Vercel or .env.local.`;
   }
 
   return {
-    isConfigured: isFirebaseConfigured,
+    isConfigured: validation.isValid,
     projectId,
     authDomain,
-    hasValidApiKey,
-    isEmulator,
+    hasValidApiKey: isRealFirebaseApiKey(firebaseConfig.apiKey),
+    isEmulator: validation.isEmulator,
+    missingVariables: validation.missingVariables,
+    placeholderVariables: validation.placeholderVariables,
     statusMessage,
   };
 }
 
+let _clientApp: FirebaseApp | null = null;
+let _clientAuth: Auth | null = null;
+let _clientFirestore: Firestore | null = null;
+
 // Singleton Firebase instances
 export function getClientFirebaseApp(): FirebaseApp {
+  if (_clientApp) return _clientApp;
   if (getApps().length > 0) {
-    return getApp();
+    _clientApp = getApp();
+    return _clientApp;
   }
-  return initializeApp(firebaseConfig);
+  _clientApp = initializeApp(firebaseConfig);
+  return _clientApp;
 }
 
 export function getClientAuth(): Auth {
-  const app = getClientFirebaseApp();
-  const auth = getAuth(app);
+  if (_clientAuth) return _clientAuth;
+  const clientApp = getClientFirebaseApp();
 
-  if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true") {
-    try {
-      connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
-    } catch {
-      // Ignore if already connected
+  try {
+    const authInstance = getAuth(clientApp);
+
+    if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true") {
+      try {
+        connectAuthEmulator(authInstance, "http://localhost:9099", { disableWarnings: true });
+      } catch {
+        // Ignore if already connected
+      }
     }
-  }
 
-  return auth;
+    if (typeof window !== "undefined") {
+      try {
+        setPersistence(authInstance, browserLocalPersistence).catch(() => {});
+      } catch {
+        // Ignore persistence setup errors in unsupported environments
+      }
+    }
+
+    _clientAuth = authInstance;
+    return authInstance;
+  } catch (error) {
+    if (!isFirebaseConfigured) {
+      throw new Error(
+        "Firebase Authentication cannot initialize: NEXT_PUBLIC_FIREBASE_API_KEY is missing or invalid in your environment."
+      );
+    }
+    throw error;
+  }
 }
 
 export function getClientFirestore(): Firestore {
-  const app = getClientFirebaseApp();
-  const db = getFirestore(app);
+  if (_clientFirestore) return _clientFirestore;
+  const clientApp = getClientFirebaseApp();
+  const dbInstance = getFirestore(clientApp);
 
   if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true") {
     try {
-      connectFirestoreEmulator(db, "localhost", 8080);
+      connectFirestoreEmulator(dbInstance, "localhost", 8080);
     } catch {
       // Ignore if already connected
     }
   }
 
-  return db;
+  _clientFirestore = dbInstance;
+  return dbInstance;
 }
 
-// Export pre-initialized instances for direct usage
+// Export pre-initialized instances with safe delegation
 export const app: FirebaseApp = getClientFirebaseApp();
-export const auth: Auth = getClientAuth();
-export const db: Firestore = getClientFirestore();
+
+export const auth: Auth = new Proxy({} as Auth, {
+  get(_target, prop) {
+    const realAuth = getClientAuth();
+    const val = (realAuth as unknown as Record<string, unknown>)[prop as string];
+    if (typeof val === "function") {
+      return val.bind(realAuth);
+    }
+    return val;
+  },
+});
+
+export const db: Firestore = new Proxy({} as Firestore, {
+  get(_target, prop) {
+    const realDb = getClientFirestore();
+    const val = (realDb as unknown as Record<string, unknown>)[prop as string];
+    if (typeof val === "function") {
+      return val.bind(realDb);
+    }
+    return val;
+  },
+});

@@ -121,16 +121,17 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Development / Placeholder Key Advisory */}
+            {/* Firebase Configuration Advisory */}
             {!isFirebaseConfigured && (
               <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-900 leading-relaxed">
                 <span className="font-bold block mb-1">Firebase Configuration Notice:</span>
-                Your environment is currently using placeholder Firebase credentials. Real sign-in requires setting a valid{" "}
+                Your environment is currently missing a valid Firebase Web API key or using placeholder credentials.
+                To enable live sign-in, configure{" "}
                 <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">
                   NEXT_PUBLIC_FIREBASE_API_KEY
                 </code>{" "}
-                in <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">.env.local</code>. You can also explore all features using{" "}
-                <strong>Public Demo Mode</strong> below.
+                in Vercel Project Settings (or in <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">.env.local</code> for local development).
+                You can also explore all features immediately using <strong>Public Demo Mode</strong> below.
               </div>
             )}
 

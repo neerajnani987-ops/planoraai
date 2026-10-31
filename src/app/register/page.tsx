@@ -86,22 +86,42 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* Development / Placeholder Key Advisory */}
+            {/* Firebase Configuration Advisory */}
             {!isFirebaseConfigured && (
               <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-900 leading-relaxed">
                 <span className="font-bold block mb-1">Firebase Configuration Notice:</span>
-                Your environment is currently using placeholder Firebase credentials. Real account creation requires setting a valid{" "}
+                Your environment is currently missing a valid Firebase Web API key or using placeholder credentials.
+                To enable live account creation, configure{" "}
                 <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">
                   NEXT_PUBLIC_FIREBASE_API_KEY
                 </code>{" "}
-                in <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">.env.local</code>. You can explore all features using{" "}
-                <strong>Public Demo Mode</strong> below.
+                in Vercel Project Settings (or in <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">.env.local</code> for local development).
+                You can explore all features immediately using <strong>Public Demo Mode</strong> below.
               </div>
             )}
 
             {authError && (
               <Alert variant="danger" title={`Registration Error${authErrorCode ? ` (${authErrorCode})` : ""}`}>
                 <p>{authError}</p>
+                {authErrorCode === "auth/invalid-api-key" && (
+                  <p className="mt-2 text-xs text-rose-800">
+                    <strong>Diagnostic:</strong> The Firebase API key was rejected by Google Identity Toolkit. Verify{" "}
+                    <code className="font-mono bg-rose-100 px-1 py-0.5 rounded text-[11px]">
+                      NEXT_PUBLIC_FIREBASE_API_KEY
+                    </code>{" "}
+                    in Vercel or <code className="font-mono bg-rose-100 px-1 py-0.5 rounded text-[11px]">.env.local</code> matches your Firebase project.
+                  </p>
+                )}
+                {authErrorCode === "auth/operation-not-allowed" && (
+                  <p className="mt-2 text-xs text-rose-800">
+                    <strong>Action Required:</strong> In Firebase Console &gt; Authentication &gt; Sign-in method, click &quot;Email/Password&quot; and toggle it to <strong>Enabled</strong>.
+                  </p>
+                )}
+                {authErrorCode === "auth/unauthorized-domain" && (
+                  <p className="mt-2 text-xs text-rose-800">
+                    <strong>Action Required:</strong> In Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains, add this domain.
+                  </p>
+                )}
               </Alert>
             )}
 
