@@ -32,37 +32,57 @@ export function extractFirebaseAuthErrorCode(error: unknown): { code: string; ra
       return { code, rawMessage };
     }
 
-    // Inspect message text for embedded Firebase or Identity Toolkit error codes
-    const msg = rawMessage.toLowerCase();
-    if (msg.includes("api key not valid") || msg.includes("invalid api key") || msg.includes("api_key_invalid")) {
-      return { code: "auth/invalid-api-key", rawMessage };
+    // Check message for embedded (auth/...) error codes
+    const match = rawMessage.match(/\(auth\/([a-z0-9-]+)\)/i);
+    if (match && match[1]) {
+      return { code: `auth/${match[1]}`, rawMessage };
     }
-    if (msg.includes("operation_not_allowed") || msg.includes("operation not allowed")) {
-      return { code: "auth/operation-not-allowed", rawMessage };
+
+    // Check customData token response error from Identity Toolkit
+    let tokenMsg = "";
+    if (errObj.customData && typeof errObj.customData === "object") {
+      const customData = errObj.customData as Record<string, unknown>;
+      if (customData._tokenResponse && typeof customData._tokenResponse === "object") {
+        const tokenResp = customData._tokenResponse as Record<string, unknown>;
+        if (tokenResp.error && typeof tokenResp.error === "object") {
+          const tokenErr = tokenResp.error as Record<string, unknown>;
+          if (typeof tokenErr.message === "string") {
+            tokenMsg = tokenErr.message;
+          }
+        }
+      }
     }
-    if (msg.includes("invalid_login_credentials") || msg.includes("invalid credential")) {
-      return { code: "auth/invalid-credential", rawMessage };
+
+    const combinedMsg = `${rawMessage} ${tokenMsg}`.toLowerCase();
+    if (combinedMsg.includes("api key not valid") || combinedMsg.includes("invalid api key") || combinedMsg.includes("api_key_invalid")) {
+      return { code: "auth/invalid-api-key", rawMessage: tokenMsg || rawMessage };
     }
-    if (msg.includes("email_not_found") || msg.includes("user not found")) {
-      return { code: "auth/user-not-found", rawMessage };
+    if (combinedMsg.includes("operation_not_allowed") || combinedMsg.includes("operation not allowed")) {
+      return { code: "auth/operation-not-allowed", rawMessage: tokenMsg || rawMessage };
     }
-    if (msg.includes("invalid_password") || msg.includes("wrong password")) {
-      return { code: "auth/wrong-password", rawMessage };
+    if (combinedMsg.includes("invalid_login_credentials") || combinedMsg.includes("invalid credential")) {
+      return { code: "auth/invalid-credential", rawMessage: tokenMsg || rawMessage };
     }
-    if (msg.includes("email_exists") || msg.includes("email already in use")) {
-      return { code: "auth/email-already-in-use", rawMessage };
+    if (combinedMsg.includes("email_not_found") || combinedMsg.includes("user not found")) {
+      return { code: "auth/user-not-found", rawMessage: tokenMsg || rawMessage };
     }
-    if (msg.includes("too_many_attempts_try_later") || msg.includes("too many requests")) {
-      return { code: "auth/too-many-requests", rawMessage };
+    if (combinedMsg.includes("invalid_password") || combinedMsg.includes("wrong password")) {
+      return { code: "auth/wrong-password", rawMessage: tokenMsg || rawMessage };
     }
-    if (msg.includes("unauthorized_domain") || msg.includes("unauthorized domain")) {
-      return { code: "auth/unauthorized-domain", rawMessage };
+    if (combinedMsg.includes("email_exists") || combinedMsg.includes("email already in use")) {
+      return { code: "auth/email-already-in-use", rawMessage: tokenMsg || rawMessage };
     }
-    if (msg.includes("network_request_failed") || msg.includes("network error")) {
-      return { code: "auth/network-request-failed", rawMessage };
+    if (combinedMsg.includes("too_many_attempts_try_later") || combinedMsg.includes("too many requests")) {
+      return { code: "auth/too-many-requests", rawMessage: tokenMsg || rawMessage };
     }
-    if (msg.includes("user_disabled")) {
-      return { code: "auth/user-disabled", rawMessage };
+    if (combinedMsg.includes("unauthorized_domain") || combinedMsg.includes("unauthorized domain")) {
+      return { code: "auth/unauthorized-domain", rawMessage: tokenMsg || rawMessage };
+    }
+    if (combinedMsg.includes("network_request_failed") || combinedMsg.includes("network error")) {
+      return { code: "auth/network-request-failed", rawMessage: tokenMsg || rawMessage };
+    }
+    if (combinedMsg.includes("user_disabled")) {
+      return { code: "auth/user-disabled", rawMessage: tokenMsg || rawMessage };
     }
 
     if (code) {
@@ -71,6 +91,10 @@ export function extractFirebaseAuthErrorCode(error: unknown): { code: string; ra
   }
 
   if (typeof error === "string") {
+    const match = error.match(/\(auth\/([a-z0-9-]+)\)/i);
+    if (match && match[1]) {
+      return { code: `auth/${match[1]}`, rawMessage: error };
+    }
     const lower = error.toLowerCase();
     if (lower.includes("api key not valid") || lower.includes("invalid api key")) {
       return { code: "auth/invalid-api-key", rawMessage: error };
@@ -119,19 +143,33 @@ export function formatFirebaseAuthError(
       diagnostic = `Domain authorization rejected. Ensure the current host is registered in Firebase authorized domains.`;
       break;
 
-    // Account enumeration-sensitive errors:
-    // Do NOT distinguish whether the email exists during sign-in attempts
     case "auth/invalid-credential":
-    case "auth/user-not-found":
-    case "auth/wrong-password":
       if (context === "reset") {
         userMessage =
           "If an account with that email exists, a password reset link has been sent to your inbox.";
-        diagnostic = "Password reset requested for email (generic response returned for privacy).";
+        diagnostic = "Password reset requested for email.";
       } else {
-        userMessage = "Invalid email or password. Please verify your credentials or reset your password.";
-        diagnostic = `Authentication rejected [${code}]. Generic credential error returned to user.`;
+        userMessage =
+          "Invalid credentials. Please verify your email and password, or verify that this account exists in your Firebase project.";
+        diagnostic = "Firebase returned auth/invalid-credential (INVALID_LOGIN_CREDENTIALS).";
       }
+      break;
+
+    case "auth/user-not-found":
+      if (context === "reset") {
+        userMessage =
+          "If an account with that email exists, a password reset link has been sent to your inbox.";
+        diagnostic = "Password reset requested for email.";
+      } else {
+        userMessage =
+          "No account found with this email. Please check that this account exists in the correct Firebase project or register a new account.";
+        diagnostic = "Firebase returned auth/user-not-found. Account does not exist in project planora-ai-f3e0b.";
+      }
+      break;
+
+    case "auth/wrong-password":
+      userMessage = "Incorrect password. Please verify your password or use 'Forgot password?' to reset it.";
+      diagnostic = "Firebase returned auth/wrong-password.";
       break;
 
     case "auth/email-already-in-use":

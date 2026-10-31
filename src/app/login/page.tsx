@@ -17,7 +17,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, resetPassword, enterDemoMode, authError, clearAuthError } = useAuth();
+  const { login, resetPassword, enterDemoMode, authError, authErrorCode, clearAuthError } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -135,8 +135,27 @@ export default function LoginPage() {
             )}
 
             {authError && (
-              <Alert variant="danger" title="Authentication Error">
-                {authError}
+              <Alert variant="danger" title={`Authentication Error${authErrorCode ? ` (${authErrorCode})` : ""}`}>
+                <p>{authError}</p>
+                {authErrorCode === "auth/invalid-api-key" && (
+                  <p className="mt-2 text-xs text-rose-800">
+                    <strong>Diagnostic:</strong> The Firebase API key was rejected by Google Identity Toolkit. Verify{" "}
+                    <code className="font-mono bg-rose-100 px-1 py-0.5 rounded text-[11px]">
+                      NEXT_PUBLIC_FIREBASE_API_KEY
+                    </code>{" "}
+                    in Vercel or <code className="font-mono bg-rose-100 px-1 py-0.5 rounded text-[11px]">.env.local</code> matches your Firebase project.
+                  </p>
+                )}
+                {authErrorCode === "auth/operation-not-allowed" && (
+                  <p className="mt-2 text-xs text-rose-800">
+                    <strong>Action Required:</strong> In Firebase Console &gt; Authentication &gt; Sign-in method, click &quot;Email/Password&quot; and toggle it to <strong>Enabled</strong>.
+                  </p>
+                )}
+                {authErrorCode === "auth/unauthorized-domain" && (
+                  <p className="mt-2 text-xs text-rose-800">
+                    <strong>Action Required:</strong> In Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains, add this domain.
+                  </p>
+                )}
               </Alert>
             )}
 

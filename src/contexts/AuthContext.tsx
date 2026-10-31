@@ -26,6 +26,7 @@ export interface AuthContextType {
   loading: boolean;
   isDemoMode: boolean;
   authError: string | null;
+  authErrorCode: string | null;
   clearAuthError: () => void;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, displayName: string) => Promise<User>;
@@ -82,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
 
   // useSyncExternalStore guarantees identical server/client initial render (false)
   // and updates cleanly after hydration with zero hydration mismatch or cascading renders
@@ -128,10 +130,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearAuthError = useCallback(() => {
     setAuthError(null);
+    setAuthErrorCode(null);
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<User> => {
     setAuthError(null);
+    setAuthErrorCode(null);
 
     if (!isFirebaseConfigured) {
       const err = formatFirebaseAuthError(
@@ -143,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "login"
       );
       setAuthError(err.userMessage);
+      setAuthErrorCode(err.code);
       throw new Error(err.userMessage);
     }
 
@@ -163,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn(`[Planora Auth] login failed [${code}]:`, diagnostic);
       }
       setAuthError(userMessage);
+      setAuthErrorCode(code);
       throw new Error(userMessage);
     }
   }, []);
@@ -170,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(
     async (email: string, password: string, displayName: string): Promise<User> => {
       setAuthError(null);
+      setAuthErrorCode(null);
 
       if (!isFirebaseConfigured) {
         const err = formatFirebaseAuthError(
@@ -181,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           "register"
         );
         setAuthError(err.userMessage);
+        setAuthErrorCode(err.code);
         throw new Error(err.userMessage);
       }
 
@@ -202,6 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.warn(`[Planora Auth] register failed [${code}]:`, diagnostic);
         }
         setAuthError(userMessage);
+        setAuthErrorCode(code);
         throw new Error(userMessage);
       }
     },
@@ -210,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = useCallback(async (email: string): Promise<void> => {
     setAuthError(null);
+    setAuthErrorCode(null);
 
     if (!isFirebaseConfigured) {
       const err = formatFirebaseAuthError(
@@ -221,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "reset"
       );
       setAuthError(err.userMessage);
+      setAuthErrorCode(err.code);
       throw new Error(err.userMessage);
     }
 
@@ -233,6 +244,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn(`[Planora Auth] password reset failed [${code}]:`, diagnostic);
       }
       setAuthError(userMessage);
+      setAuthErrorCode(code);
       throw new Error(userMessage);
     }
   }, []);
@@ -287,6 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       isDemoMode,
       authError,
+      authErrorCode,
       clearAuthError,
       login,
       register,
@@ -301,6 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       isDemoMode,
       authError,
+      authErrorCode,
       clearAuthError,
       login,
       register,

@@ -55,27 +55,22 @@ describe("Firebase Auth Error Formatter & Sanitizer", () => {
       expect(formatted.userMessage).toContain("Authorized domains");
     });
 
-    it("safely handles account enumeration for auth/user-not-found during login", () => {
+    it("handles auth/user-not-found with informative guidance", () => {
       const formatted = formatFirebaseAuthError({ code: "auth/user-not-found" }, "login");
-      expect(formatted.userMessage).toBe(
-        "Invalid email or password. Please verify your credentials or reset your password."
-      );
-      // Ensure it does not say "No user found with this email"
-      expect(formatted.userMessage).not.toContain("not found");
+      expect(formatted.userMessage).toContain("No account found with this email");
+      expect(formatted.diagnostic).toContain("auth/user-not-found");
     });
 
-    it("safely handles auth/invalid-credential during login", () => {
+    it("handles auth/invalid-credential during login", () => {
       const formatted = formatFirebaseAuthError({ code: "auth/invalid-credential" }, "login");
-      expect(formatted.userMessage).toBe(
-        "Invalid email or password. Please verify your credentials or reset your password."
-      );
+      expect(formatted.userMessage).toContain("Invalid credentials");
+      expect(formatted.diagnostic).toContain("auth/invalid-credential");
     });
 
-    it("safely handles auth/wrong-password during login", () => {
+    it("handles auth/wrong-password during login", () => {
       const formatted = formatFirebaseAuthError({ code: "auth/wrong-password" }, "login");
-      expect(formatted.userMessage).toBe(
-        "Invalid email or password. Please verify your credentials or reset your password."
-      );
+      expect(formatted.userMessage).toContain("Incorrect password");
+      expect(formatted.diagnostic).toContain("auth/wrong-password");
     });
 
     it("formats auth/email-already-in-use during registration", () => {

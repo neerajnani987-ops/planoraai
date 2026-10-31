@@ -16,7 +16,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, enterDemoMode, authError, clearAuthError } = useAuth();
+  const { register, enterDemoMode, authError, authErrorCode, clearAuthError } = useAuth();
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -100,8 +100,8 @@ export default function RegisterPage() {
             )}
 
             {authError && (
-              <Alert variant="danger" title="Registration Error">
-                {authError}
+              <Alert variant="danger" title={`Registration Error${authErrorCode ? ` (${authErrorCode})` : ""}`}>
+                <p>{authError}</p>
               </Alert>
             )}
 

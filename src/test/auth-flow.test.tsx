@@ -69,13 +69,14 @@ describe("AuthContext & Authentication Operations", () => {
 
     await act(async () => {
       await expect(result.current.login("test@example.com", "wrong-password")).rejects.toThrow(
-        "Invalid email or password. Please verify your credentials or reset your password."
+        "Invalid credentials. Please verify your email and password, or verify that this account exists in your Firebase project."
       );
     });
 
     expect(result.current.authError).toBe(
-      "Invalid email or password. Please verify your credentials or reset your password."
+      "Invalid credentials. Please verify your email and password, or verify that this account exists in your Firebase project."
     );
+    expect(result.current.authErrorCode).toBe("auth/invalid-credential");
   });
 
   it("handles password reset email request successfully", async () => {
