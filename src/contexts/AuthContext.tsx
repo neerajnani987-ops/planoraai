@@ -13,11 +13,13 @@ import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   updateProfile,
   onAuthStateChanged,
 } from "firebase/auth";
-import { getClientAuth } from "@/lib/firebase";
+import { getClientAuth, isFirebaseConfigured } from "@/lib/firebase";
+import { formatFirebaseAuthError } from "@/lib/auth-errors";
 
 export interface AuthContextType {
   user: User | null;
@@ -27,6 +29,7 @@ export interface AuthContextType {
   clearAuthError: () => void;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, displayName: string) => Promise<User>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   enterDemoMode: () => void;
   exitDemoMode: () => void;
@@ -129,6 +132,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string): Promise<User> => {
     setAuthError(null);
+
+    if (!isFirebaseConfigured) {
+      const err = formatFirebaseAuthError(
+        {
+          code: "auth/invalid-api-key",
+          message:
+            "Firebase Authentication is not configured. Please set a valid NEXT_PUBLIC_FIREBASE_API_KEY from Firebase Console in your .env.local or Vercel environment variables.",
+        },
+        "login"
+      );
+      setAuthError(err.userMessage);
+      throw new Error(err.userMessage);
+    }
+
     try {
       const auth = getClientAuth();
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
@@ -141,23 +158,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return cred.user;
     } catch (err: unknown) {
-      let friendlyMsg = "Failed to sign in. Please check your credentials.";
-      if (err && typeof err === "object" && "code" in err) {
-        const code = (err as { code: string }).code;
-        if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
-          friendlyMsg = "Invalid email or password. Please try again.";
-        } else if (code === "auth/too-many-requests") {
-          friendlyMsg = "Too many failed attempts. Please reset your password or try again later.";
-        }
+      const { code, userMessage, diagnostic } = formatFirebaseAuthError(err, "login");
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[Planora Auth] login failed [${code}]:`, diagnostic);
       }
-      setAuthError(friendlyMsg);
-      throw new Error(friendlyMsg);
+      setAuthError(userMessage);
+      throw new Error(userMessage);
     }
   }, []);
 
   const register = useCallback(
     async (email: string, password: string, displayName: string): Promise<User> => {
       setAuthError(null);
+
+      if (!isFirebaseConfigured) {
+        const err = formatFirebaseAuthError(
+          {
+            code: "auth/invalid-api-key",
+            message:
+              "Firebase Authentication is not configured. Please set a valid NEXT_PUBLIC_FIREBASE_API_KEY from Firebase Console in your .env.local or Vercel environment variables.",
+          },
+          "register"
+        );
+        setAuthError(err.userMessage);
+        throw new Error(err.userMessage);
+      }
+
       try {
         const auth = getClientAuth();
         const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -171,21 +197,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return cred.user;
       } catch (err: unknown) {
-        let friendlyMsg = "Registration failed. Please try again.";
-        if (err && typeof err === "object" && "code" in err) {
-          const code = (err as { code: string }).code;
-          if (code === "auth/email-already-in-use") {
-            friendlyMsg = "An account with this email already exists. Please log in.";
-          } else if (code === "auth/weak-password") {
-            friendlyMsg = "Password is too weak. Please use at least 8 characters.";
-          }
+        const { code, userMessage, diagnostic } = formatFirebaseAuthError(err, "register");
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(`[Planora Auth] register failed [${code}]:`, diagnostic);
         }
-        setAuthError(friendlyMsg);
-        throw new Error(friendlyMsg);
+        setAuthError(userMessage);
+        throw new Error(userMessage);
       }
     },
     []
   );
+
+  const resetPassword = useCallback(async (email: string): Promise<void> => {
+    setAuthError(null);
+
+    if (!isFirebaseConfigured) {
+      const err = formatFirebaseAuthError(
+        {
+          code: "auth/invalid-api-key",
+          message:
+            "Firebase Authentication is not configured. Please set a valid NEXT_PUBLIC_FIREBASE_API_KEY from Firebase Console in your .env.local or Vercel environment variables.",
+        },
+        "reset"
+      );
+      setAuthError(err.userMessage);
+      throw new Error(err.userMessage);
+    }
+
+    try {
+      const auth = getClientAuth();
+      await sendPasswordResetEmail(auth, email.trim());
+    } catch (err: unknown) {
+      const { code, userMessage, diagnostic } = formatFirebaseAuthError(err, "reset");
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[Planora Auth] password reset failed [${code}]:`, diagnostic);
+      }
+      setAuthError(userMessage);
+      throw new Error(userMessage);
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -240,6 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearAuthError,
       login,
       register,
+      resetPassword,
       logout,
       enterDemoMode,
       exitDemoMode,
@@ -253,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearAuthError,
       login,
       register,
+      resetPassword,
       logout,
       enterDemoMode,
       exitDemoMode,

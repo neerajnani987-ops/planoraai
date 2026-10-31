@@ -15,13 +15,61 @@ export const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456",
 };
 
+/**
+ * Evaluates whether an API key is a genuine, potentially active key
+ * rather than a placeholder, template string, or dummy development value.
+ */
+export function isRealFirebaseApiKey(key?: string | null): boolean {
+  if (!key) return false;
+  const trimmed = key.trim();
+  if (trimmed.length < 20) return false;
+  if (trimmed.includes("your_")) return false;
+  if (trimmed.includes("placeholder")) return false;
+  if (trimmed.includes("dummy") || trimmed.includes("Dummy")) return false;
+  if (trimmed.includes("example")) return false;
+  if (trimmed === "AIzaSyDummyKeyForDevelopmentAndTesting00") return false;
+  return true;
+}
+
 // Check if real config or placeholder
 export const isFirebaseConfigured = Boolean(
-  process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-  !process.env.NEXT_PUBLIC_FIREBASE_API_KEY.includes("your_") &&
+  (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true" ||
+    isRealFirebaseApiKey(process.env.NEXT_PUBLIC_FIREBASE_API_KEY)) &&
   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-  !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID.includes("your_")
+  !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID.includes("your_") &&
+  !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID.includes("placeholder")
 );
+
+export function getFirebaseConfigDiagnostics(): {
+  isConfigured: boolean;
+  projectId: string;
+  authDomain: string;
+  hasValidApiKey: boolean;
+  isEmulator: boolean;
+  statusMessage: string;
+} {
+  const isEmulator = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
+  const hasValidApiKey = isRealFirebaseApiKey(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+  const projectId = firebaseConfig.projectId;
+  const authDomain = firebaseConfig.authDomain;
+
+  let statusMessage = "Firebase Authentication is fully configured.";
+  if (isEmulator) {
+    statusMessage = "Firebase Local Emulator is active (http://localhost:9099).";
+  } else if (!hasValidApiKey) {
+    statusMessage =
+      "Firebase Web API key is not configured or using a development placeholder. Update NEXT_PUBLIC_FIREBASE_API_KEY in .env.local or Vercel.";
+  }
+
+  return {
+    isConfigured: isFirebaseConfigured,
+    projectId,
+    authDomain,
+    hasValidApiKey,
+    isEmulator,
+    statusMessage,
+  };
+}
 
 // Singleton Firebase instances
 export function getClientFirebaseApp(): FirebaseApp {

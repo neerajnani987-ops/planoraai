@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   RegisterInputSchema,
   LoginInputSchema,
+  ResetPasswordInputSchema,
   UserProfileSchema,
 } from "@/schemas/auth";
 
@@ -80,6 +81,23 @@ describe("Authentication & User Profile Zod Schemas", () => {
       };
 
       const result = LoginInputSchema.safeParse(invalid);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("ResetPasswordInputSchema", () => {
+    it("validates a proper email for password reset", () => {
+      const valid = { email: "reset.user@example.com" };
+      const result = ResetPasswordInputSchema.safeParse(valid);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.email).toBe("reset.user@example.com");
+      }
+    });
+
+    it("rejects an invalid email format for password reset", () => {
+      const invalid = { email: "not-an-email" };
+      const result = ResetPasswordInputSchema.safeParse(invalid);
       expect(result.success).toBe(false);
     });
   });

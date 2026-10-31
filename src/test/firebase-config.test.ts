@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { firebaseConfig, getClientFirebaseApp, getClientAuth, getClientFirestore, app, auth, db } from "@/lib/firebase";
+import {
+  firebaseConfig,
+  getClientFirebaseApp,
+  getClientAuth,
+  getClientFirestore,
+  isRealFirebaseApiKey,
+  getFirebaseConfigDiagnostics,
+  app,
+  auth,
+  db,
+} from "@/lib/firebase";
 import * as firebaseFromConfig from "@/firebase/config";
 
 describe("Firebase Web Configuration & Client SDK Initialization", () => {
@@ -27,6 +37,21 @@ describe("Firebase Web Configuration & Client SDK Initialization", () => {
     expect(firebaseFromConfig.app).toBe(app);
     expect(firebaseFromConfig.auth).toBe(auth);
     expect(firebaseFromConfig.db).toBe(db);
+  });
+
+  it("correctly distinguishes real vs placeholder API keys", () => {
+    expect(isRealFirebaseApiKey("AIzaSyDummyKeyForDevelopmentAndTesting00")).toBe(false);
+    expect(isRealFirebaseApiKey("your_firebase_api_key")).toBe(false);
+    expect(isRealFirebaseApiKey("")).toBe(false);
+    expect(isRealFirebaseApiKey(null)).toBe(false);
+    expect(isRealFirebaseApiKey("AIzaSyB3ExampleRealKeyWithEnoughLength12345")).toBe(true);
+  });
+
+  it("provides informative diagnostics", () => {
+    const diag = getFirebaseConfigDiagnostics();
+    expect(diag.projectId).toBe("planora-ai-f3e0b");
+    expect(diag.authDomain).toBe("planora-ai-f3e0b.firebaseapp.com");
+    expect(typeof diag.statusMessage).toBe("string");
   });
 });
 

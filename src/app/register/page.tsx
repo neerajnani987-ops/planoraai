@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { useAuth } from "@/hooks/useAuth";
 import { RegisterInputSchema } from "@/schemas/auth";
+import { isFirebaseConfigured } from "@/lib/firebase";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent duplicate submissions
+
     clearAuthError();
     setFieldErrors({});
 
@@ -83,6 +86,19 @@ export default function RegisterPage() {
               </p>
             </div>
 
+            {/* Development / Placeholder Key Advisory */}
+            {!isFirebaseConfigured && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-900 leading-relaxed">
+                <span className="font-bold block mb-1">Firebase Configuration Notice:</span>
+                Your environment is currently using placeholder Firebase credentials. Real account creation requires setting a valid{" "}
+                <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">
+                  NEXT_PUBLIC_FIREBASE_API_KEY
+                </code>{" "}
+                in <code className="font-mono bg-amber-200/60 px-1 py-0.5 rounded text-[11px]">.env.local</code>. You can explore all features using{" "}
+                <strong>Public Demo Mode</strong> below.
+              </div>
+            )}
+
             {authError && (
               <Alert variant="danger" title="Registration Error">
                 {authError}
@@ -95,6 +111,7 @@ export default function RegisterPage() {
                 label="Full Name"
                 type="text"
                 required
+                disabled={isLoading}
                 placeholder="e.g. Taylor Morgan"
                 value={displayName}
                 onChange={(e) => {
@@ -108,6 +125,7 @@ export default function RegisterPage() {
                 label="Email Address"
                 type="email"
                 required
+                disabled={isLoading}
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => {
@@ -121,6 +139,7 @@ export default function RegisterPage() {
                 label="Password"
                 type="password"
                 required
+                disabled={isLoading}
                 placeholder="At least 6 characters"
                 value={password}
                 onChange={(e) => {
@@ -134,6 +153,7 @@ export default function RegisterPage() {
                 label="Confirm Password"
                 type="password"
                 required
+                disabled={isLoading}
                 placeholder="Repeat password"
                 value={confirmPassword}
                 onChange={(e) => {
@@ -148,6 +168,7 @@ export default function RegisterPage() {
                 variant="teal"
                 size="lg"
                 isLoading={isLoading}
+                disabled={isLoading}
                 className="w-full justify-center shadow-md shadow-teal-700/10"
                 rightIcon={<UserCheck className="w-4 h-4" />}
               >
@@ -171,6 +192,7 @@ export default function RegisterPage() {
               variant="outline"
               size="md"
               onClick={handleDemoClick}
+              disabled={isLoading}
               className="w-full justify-center text-xs font-semibold text-slate-700 border-slate-300 hover:bg-slate-50"
               leftIcon={<Eye className="w-4 h-4 text-teal-600" />}
             >

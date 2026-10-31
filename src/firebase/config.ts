@@ -5,6 +5,8 @@
 import {
   firebaseConfig,
   isFirebaseConfigured,
+  isRealFirebaseApiKey,
+  getFirebaseConfigDiagnostics,
   getClientFirebaseApp,
   getClientAuth,
   getClientFirestore,
@@ -16,6 +18,8 @@ import {
 export {
   firebaseConfig,
   isFirebaseConfigured,
+  isRealFirebaseApiKey,
+  getFirebaseConfigDiagnostics,
   getClientFirebaseApp,
   getClientAuth,
   getClientFirestore,

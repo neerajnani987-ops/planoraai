@@ -32,6 +32,16 @@ export const LoginInputSchema = z.object({
 
 export type LoginInput = z.infer<typeof LoginInputSchema>;
 
+export const ResetPasswordInputSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Please provide a valid email address"),
+});
+
+export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
+
 export const UserPreferencesSchema = z.object({
   defaultCurrency: z.string().min(1).max(5).default("USD"),
   emailNotifications: z.boolean().default(true),
