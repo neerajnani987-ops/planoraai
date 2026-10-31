@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User Profile Collection: Each user can only read and write their own profile
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && request.resource.data.uid == userId
+                    && request.resource.data.email is string;
+      allow update: if isOwner(userId)
+                    && request.resource.data.uid == userId;
+      allow delete: if false; // Deletion handled via admin or account termination
+    }
+
+    match /users/{userId}/{subcollection=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Events Collection: Strictly enforce user ownership on every document operation
+    match /events/{eventId} {
+      // Users can only read events where they are the authenticated owner
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Users can only create events where userId matches their own authenticated uid
+      allow create: if isAuthenticated()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.title is string
+                    && request.resource.data.totalBudget >= 0
+                    && request.resource.data.guestCount >= 1;
+
+      // Users can only update their own events and cannot reassign ownership to another user
+      allow update: if isAuthenticated()
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == request.auth.uid;
+
+      // Users can only delete their own events
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /events/{eventId}/{subcollection=**} {
+      allow read, write: if isAuthenticated()
+                        && get(/databases/$(database)/documents/events/$(eventId)).data.userId == request.auth.uid;
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
