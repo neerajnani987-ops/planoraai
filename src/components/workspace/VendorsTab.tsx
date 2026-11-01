@@ -129,3 +129,4 @@ export const VendorsTab = React.memo(function VendorsTab({
     </div>
   );
 });
+
