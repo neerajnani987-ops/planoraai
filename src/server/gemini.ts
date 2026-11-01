@@ -298,10 +298,51 @@ function parseAndValidateAiJson(rawJson: string): RawAiPlan {
   return validation.data;
 }
 
+// ============================================================================
+// Safe In-Memory LRU / TTL Response Cache for Gemini AI
+// ============================================================================
+interface CachedPlanEntry {
+  plan: ValidatedPlan;
+  timestamp: number;
+}
+
+const AI_CACHE_TTL_MS = 15 * 60 * 1000; // 15-minute TTL
+const MAX_CACHE_ENTRIES = 50;
+const aiPlanCache = new Map<string, CachedPlanEntry>();
+
+export function getCachedAiPlan(key: string): ValidatedPlan | null {
+  if (process.env.NODE_ENV === "test") return null;
+  const entry = aiPlanCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > AI_CACHE_TTL_MS) {
+    aiPlanCache.delete(key);
+    return null;
+  }
+  return entry.plan;
+}
+
+export function setCachedAiPlan(key: string, plan: ValidatedPlan): void {
+  if (aiPlanCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = aiPlanCache.keys().next().value;
+    if (oldestKey) aiPlanCache.delete(oldestKey);
+  }
+  aiPlanCache.set(key, { plan, timestamp: Date.now() });
+}
+
+export function clearAiPlanCache(): void {
+  aiPlanCache.clear();
+}
+
 /**
  * 1. Generate an Event Plan
  */
 export async function generateEventPlan(input: EventInput): Promise<ValidatedPlan> {
+  const cacheKey = `gen:${input.eventType}:${input.eventName.trim().toLowerCase()}:${input.eventDate}:${input.guestCount}:${input.totalBudget}:${input.currency}:${(input.theme || "").trim().toLowerCase()}:${(input.userPreferences || "").trim().toLowerCase()}`;
+  const cached = getCachedAiPlan(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const systemInstruction = `You are Planora AI, an elite, highly organized event producer.
 Your goal is to build an exhaustive, realistic, and tailored event plan.
 IMPORTANT EVENT-SPECIFIC RULES:
@@ -378,7 +419,9 @@ JSON Schema to match:
 
   const rawJson = await callGeminiWithRetry(prompt, systemInstruction);
   const rawPlan = parseAndValidateAiJson(rawJson);
-  return validateAndRecalculateBudget(rawPlan, input);
+  const validated = validateAndRecalculateBudget(rawPlan, input);
+  setCachedAiPlan(cacheKey, validated);
+  return validated;
 }
 
 /**
@@ -387,6 +430,12 @@ JSON Schema to match:
 export async function reviseEventPlan(req: PlanRevisionRequest): Promise<ValidatedPlan> {
   const current = req.currentPlan;
   const instruction = req.revisionInstruction;
+
+  const cacheKey = `rev:${current.id}:${instruction.trim().toLowerCase()}:${Boolean(req.preserveTasks)}`;
+  const cached = getCachedAiPlan(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
   const systemInstruction = `You are Planora AI modifying an existing event plan based on user instructions.
 Preserve existing items, tasks, and structure wherever possible unless explicitly requested to change.
@@ -423,7 +472,9 @@ Apply the requested modification. Return the complete updated plan JSON matching
     }));
   }
 
-  return validateAndRecalculateBudget(rawPlan, current.input, current.id);
+  const validated = validateAndRecalculateBudget(rawPlan, current.input, current.id);
+  setCachedAiPlan(cacheKey, validated);
+  return validated;
 }
 
 /**
@@ -433,6 +484,12 @@ export async function optimizeBudgetPlan(req: BudgetOptimizeRequest): Promise<Va
   const current = req.currentPlan;
   const reductionPercent = req.targetReductionPercentage;
   const protectedCats = req.protectedCategories;
+
+  const cacheKey = `opt:${current.id}:${reductionPercent}:${protectedCats.slice().sort().join(",")}`;
+  const cached = getCachedAiPlan(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
   const systemInstruction = `You are a professional event budget consultant.
 Your objective is to find smart cost optimizations to reduce expenses by approximately ${reductionPercent}%
@@ -451,7 +508,9 @@ Generate the revised plan with optimized expenses and actionable savings.`;
 
   const rawJson = await callGeminiWithRetry(prompt, systemInstruction);
   const rawPlan = parseAndValidateAiJson(rawJson);
-  return validateAndRecalculateBudget(rawPlan, current.input, current.id);
+  const validated = validateAndRecalculateBudget(rawPlan, current.input, current.id);
+  setCachedAiPlan(cacheKey, validated);
+  return validated;
 }
 
 /**
@@ -461,6 +520,12 @@ export async function reschedulePlan(req: RescheduleRequest): Promise<ValidatedP
   const current = req.currentPlan;
   const oldDate = current.input.eventDate;
   const newDate = req.newEventDate;
+
+  const cacheKey = `resched:${current.id}:${newDate}`;
+  const cached = getCachedAiPlan(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
   const systemInstruction = `You are Planora AI event timeline specialist.
 The client has changed their event date from ${oldDate} to ${newDate}.
@@ -484,5 +549,7 @@ Return the updated plan with all timeline markers and booking windows adapted fo
     eventDate: newDate,
   };
 
-  return validateAndRecalculateBudget(rawPlan, updatedInput, current.id);
+  const validated = validateAndRecalculateBudget(rawPlan, updatedInput, current.id);
+  setCachedAiPlan(cacheKey, validated);
+  return validated;
 }

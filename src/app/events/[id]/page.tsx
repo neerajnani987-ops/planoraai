@@ -140,34 +140,47 @@ export default function EventWorkspacePage() {
     currentPlan?.input.eventDate || ""
   );
 
-  // Filtered Tasks
+  // Filtered Tasks (optimized with precomputed query)
   const filteredTasks = useMemo(() => {
     if (!currentPlan) return [];
-    return currentPlan.tasks.filter((t) => {
-      const matchesSearch = t.title.toLowerCase().includes(taskSearch.toLowerCase());
+    const query = taskSearch.trim().toLowerCase();
+    const tasks = currentPlan.tasks;
+    if (!query && taskStatusFilter === "all") return tasks;
+    return tasks.filter((t) => {
       const matchesStatus =
         taskStatusFilter === "all" ||
         (taskStatusFilter === "completed" ? t.completed : !t.completed);
-      return matchesSearch && matchesStatus;
+      if (!matchesStatus) return false;
+      if (!query) return true;
+      return (
+        t.title.toLowerCase().includes(query) ||
+        (t.category && t.category.toLowerCase().includes(query))
+      );
     });
   }, [currentPlan, taskSearch, taskStatusFilter]);
 
-  // Filtered Expenses
+  // Filtered Expenses (optimized with precomputed query)
   const filteredExpenses = useMemo(() => {
     if (!currentPlan) return [];
-    return currentPlan.expenses.filter((e) =>
-      e.itemName.toLowerCase().includes(expenseSearch.toLowerCase()) ||
-      e.category.toLowerCase().includes(expenseSearch.toLowerCase())
+    const query = expenseSearch.trim().toLowerCase();
+    const expenses = currentPlan.expenses;
+    if (!query) return expenses;
+    return expenses.filter((e) =>
+      e.itemName.toLowerCase().includes(query) ||
+      e.category.toLowerCase().includes(query)
     );
   }, [currentPlan, expenseSearch]);
 
-  // Filtered Vendors
+  // Filtered Vendors (optimized with precomputed query)
   const filteredVendors = useMemo(() => {
     if (!currentPlan) return [];
-    return currentPlan.vendors.filter((v) =>
-      v.serviceType.toLowerCase().includes(vendorSearch.toLowerCase()) ||
-      v.category.toLowerCase().includes(vendorSearch.toLowerCase()) ||
-      v.status.toLowerCase().includes(vendorSearch.toLowerCase())
+    const query = vendorSearch.trim().toLowerCase();
+    const vendors = currentPlan.vendors;
+    if (!query) return vendors;
+    return vendors.filter((v) =>
+      v.serviceType.toLowerCase().includes(query) ||
+      v.category.toLowerCase().includes(query) ||
+      v.status.toLowerCase().includes(query)
     );
   }, [currentPlan, vendorSearch]);
 

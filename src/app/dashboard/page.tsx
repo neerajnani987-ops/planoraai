@@ -43,25 +43,28 @@ export default function DashboardPage() {
     return events.filter((e) => e.input.eventType === filterType);
   }, [events, filterType]);
 
-  // Aggregate stats
+  // Aggregate stats in a single pass
   const stats = useMemo(() => {
-    const totalEvents = events.length;
-    const totalBudget = events.reduce((sum, e) => sum + e.budgetSummary.totalUserBudget, 0);
-    const totalExpenses = events.reduce((sum, e) => sum + e.budgetSummary.calculatedTotalExpenses, 0);
-    
+    let totalBudget = 0;
+    let totalExpenses = 0;
     let totalTasks = 0;
     let completedTasks = 0;
-    events.forEach((e) => {
-      e.tasks.forEach((t) => {
+
+    for (let i = 0; i < events.length; i++) {
+      const e = events[i];
+      totalBudget += e.budgetSummary.totalUserBudget;
+      totalExpenses += e.budgetSummary.calculatedTotalExpenses;
+      const tasks = e.tasks;
+      for (let j = 0; j < tasks.length; j++) {
         totalTasks++;
-        if (t.completed) completedTasks++;
-      });
-    });
+        if (tasks[j].completed) completedTasks++;
+      }
+    }
 
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return {
-      totalEvents,
+      totalEvents: events.length,
       totalBudget,
       totalExpenses,
       totalTasks,

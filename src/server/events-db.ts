@@ -20,6 +20,27 @@ export class DatabaseError extends Error {
   }
 }
 
+// ============================================================================
+// Short-Lived In-Memory Cache for User Events (SWR)
+// Reduces Firestore read queries and accelerates server response time
+// ============================================================================
+interface UserEventsCacheEntry {
+  data: SavedEventDocument[];
+  timestamp: number;
+}
+
+const userEventsCache = new Map<string, UserEventsCacheEntry>();
+const DB_CACHE_TTL_MS = 15000; // 15 seconds SWR cache
+const MAX_CACHED_USERS = 100;
+
+export function invalidateUserEventsCache(userId: string): void {
+  userEventsCache.delete(userId);
+}
+
+export function clearUserEventsCache(): void {
+  userEventsCache.clear();
+}
+
 /**
  * Retrieves all events owned by a specific authenticated user.
  * Bounded query limit ensures performance and guards against unbounded reads.
@@ -30,6 +51,14 @@ export async function getUserEvents(
 ): Promise<SavedEventDocument[]> {
   if (!userId) {
     throw new DatabaseError("User ID is required to fetch events", 400);
+  }
+
+  // Check cache for default limit queries
+  if (limitCount === 50) {
+    const cached = userEventsCache.get(userId);
+    if (cached && Date.now() - cached.timestamp < DB_CACHE_TTL_MS) {
+      return cached.data;
+    }
   }
 
   try {
@@ -52,7 +81,17 @@ export async function getUserEvents(
     });
 
     // In-memory sort by updatedAt descending so composite index isn't mandatory on fresh Firestore
-    return events.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    const sorted = events.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    if (limitCount === 50) {
+      if (userEventsCache.size >= MAX_CACHED_USERS) {
+        const oldest = userEventsCache.keys().next().value;
+        if (oldest) userEventsCache.delete(oldest);
+      }
+      userEventsCache.set(userId, { data: sorted, timestamp: Date.now() });
+    }
+
+    return sorted;
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Failed to retrieve events";
     console.error("getUserEvents error:", msg);
@@ -69,6 +108,13 @@ export async function getEventById(
 ): Promise<SavedEventDocument | null> {
   if (!eventId || !userId) {
     throw new DatabaseError("Event ID and User ID are required", 400);
+  }
+
+  // Fast path: Check user's cached events first
+  const userCache = userEventsCache.get(userId);
+  if (userCache && Date.now() - userCache.timestamp < DB_CACHE_TTL_MS) {
+    const match = userCache.data.find((e) => e.id === eventId);
+    if (match) return match;
   }
 
   try {
@@ -151,6 +197,7 @@ export async function createEvent(
       transaction.set(docRef, eventDoc);
     });
 
+    invalidateUserEventsCache(userId);
     return eventDoc;
   } catch (error: unknown) {
     if (error instanceof AuthorizationError) throw error;
@@ -209,6 +256,7 @@ export async function updateEvent(
       return updatedDoc;
     });
 
+    invalidateUserEventsCache(userId);
     return result;
   } catch (error: unknown) {
     if (error instanceof AuthorizationError || error instanceof DatabaseError) throw error;
@@ -244,6 +292,8 @@ export async function deleteEvent(eventId: string, userId: string): Promise<void
 
       transaction.delete(docRef);
     });
+
+    invalidateUserEventsCache(userId);
   } catch (error: unknown) {
     if (error instanceof AuthorizationError) throw error;
     const msg = error instanceof Error ? error.message : "Failed to delete event";
