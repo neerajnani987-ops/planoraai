@@ -10,35 +10,30 @@ import {
   MapPin,
   Users,
   DollarSign,
-  CheckCircle2,
-  Clock,
-  CheckSquare,
-  Square,
-  Plus,
   Trash2,
   AlertTriangle,
-  Send,
   Building2,
   CalendarDays,
   ListTodo,
   FileText,
-  Search,
-  Percent,
-  Pencil,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Alert } from "@/components/ui/Alert";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { LoadingState } from "@/components/ui/LoadingState";
+import {
+  OverviewTab,
+  BudgetTab,
+  TimelineTab,
+  TasksTab,
+  VendorsTab,
+  AiAssistantTab,
+} from "@/components/workspace";
 import { useEventStore } from "@/hooks/useEventStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ValidatedPlan, ExpenseItem, VendorItem } from "@/schemas/event";
@@ -705,799 +700,74 @@ export default function EventWorkspacePage() {
         )}
 
         {/* Tab 1: Overview */}
-        {activeTab === "overview" && (
-          <div className="space-y-6">
-            {/* Feasibility Alert */}
-            {currentPlan.budgetSummary.isOverBudget ? (
-              <Alert variant="warning" title="Budget Advisory Warning">
-                {currentPlan.feasibilityAssessment}
-              </Alert>
-            ) : (
-              <Alert variant="info" title="Verified Feasibility Assessment">
-                {currentPlan.feasibilityAssessment}
-              </Alert>
-            )}
-
-            {/* Vision & Atmosphere */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Creative Vision & Narrative</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm text-slate-700 leading-relaxed">
-                  <p>{currentPlan.visionSummary}</p>
-
-                  <div className="pt-2 border-t border-slate-100">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                      Color Palette & Styling
-                    </span>
-                    <div className="flex items-center gap-2 mb-3">
-                      {currentPlan.themeAndDecor.primaryColorPalette.map((color, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5 text-xs">
-                          <span
-                            className="w-5 h-5 rounded-full border border-slate-200 shadow-2xs"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="font-mono text-[11px] text-slate-500">{color}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      <strong>Style:</strong> {currentPlan.themeAndDecor.aestheticStyle}
-                    </p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      <strong>Atmosphere:</strong> {currentPlan.themeAndDecor.atmosphere}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Food & Entertainment */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Culinary & Entertainment Curation</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm text-slate-700 leading-relaxed">
-                  <div>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Catering Approach
-                    </span>
-                    <p className="font-semibold text-slate-800">
-                      {currentPlan.foodAndEntertainment.cateringStyle}
-                    </p>
-                    <ul className="list-disc list-inside text-xs text-slate-600 mt-2 space-y-1">
-                      {currentPlan.foodAndEntertainment.menuConcepts.map((item, idx) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-100">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Dietary & Allergen Protocol
-                    </span>
-                    <p className="text-xs text-slate-600">
-                      {currentPlan.foodAndEntertainment.dietaryInclusivityNotes}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Guest Management & Contingencies */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Guest Experience & Flow</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-xs text-slate-700">
-                  <div>
-                    <span className="font-bold text-slate-900 block mb-0.5">Seating & Layout:</span>
-                    <p className="text-slate-600">{currentPlan.guestManagement.seatingLayout}</p>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-900 block mb-0.5">Invitation Cadence:</span>
-                    <p className="text-slate-600">{currentPlan.guestManagement.invitationTimeline}</p>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-900 block mb-0.5">Accessibility & Inclusivity:</span>
-                    <p className="text-slate-600">{currentPlan.guestManagement.accessibilityAccommodations}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Risk Factors & Contingencies</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-xs">
-                  {currentPlan.contingencies.map((c, i) => (
-                    <div key={i} className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/70">
-                      <span className="font-bold text-amber-950 block mb-1">Risk: {c.riskFactor}</span>
-                      <p className="text-slate-700 mb-1">
-                        <strong>Mitigation:</strong> {c.mitigationStrategy}
-                      </p>
-                      <p className="text-slate-700">
-                        <strong>Backup:</strong> {c.backupPlan}
-                      </p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
+        {activeTab === "overview" && <OverviewTab plan={currentPlan} />}
 
         {/* Tab 2: Budget Manager */}
         {activeTab === "budget" && (
-          <div className="space-y-6">
-            {/* Top KPI Metrics Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-white border-slate-200/80 p-4">
-                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block mb-1">
-                  Total Budget
-                </span>
-                <div className="text-xl font-extrabold text-slate-900">
-                  {formatCurrency(
-                    currentPlan.budgetSummary.totalUserBudget,
-                    currentPlan.budgetSummary.currency
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-1">
-                  Target client budget
-                </div>
-              </Card>
-
-              <Card className="bg-white border-slate-200/80 p-4">
-                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block mb-1">
-                  Calculated Expenses
-                </span>
-                <div className="text-xl font-extrabold text-slate-900">
-                  {formatCurrency(
-                    currentPlan.budgetSummary.calculatedTotalExpenses,
-                    currentPlan.budgetSummary.currency
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-1">
-                  Sum of all {currentPlan.expenses.length} itemized costs
-                </div>
-              </Card>
-
-              <Card
-                className={`p-4 border ${
-                  currentPlan.budgetSummary.isOverBudget
-                    ? "bg-rose-50/50 border-rose-200/80"
-                    : "bg-teal-50/40 border-teal-200/80"
-                }`}
-              >
-                <span className="text-xs text-slate-600 font-semibold uppercase tracking-wider block mb-1">
-                  {currentPlan.budgetSummary.isOverBudget
-                    ? "Budget Overrun"
-                    : "Remaining Reserve"}
-                </span>
-                <div
-                  className={`text-xl font-extrabold ${
-                    currentPlan.budgetSummary.isOverBudget
-                      ? "text-rose-700"
-                      : "text-teal-800"
-                  }`}
-                >
-                  {formatCurrency(
-                    Math.abs(currentPlan.budgetSummary.remainingBudget),
-                    currentPlan.budgetSummary.currency
-                  )}
-                </div>
-                <div className="text-[11px] mt-1 font-medium">
-                  {currentPlan.budgetSummary.isOverBudget ? (
-                    <span className="text-rose-600">
-                      Over budget by {formatCurrency(currentPlan.budgetSummary.overBudgetAmount, currentPlan.budgetSummary.currency)}
-                    </span>
-                  ) : (
-                    <span className="text-teal-700">
-                      Unallocated contingency reserve
-                    </span>
-                  )}
-                </div>
-              </Card>
-
-              <Card className="bg-white border-slate-200/80 p-4">
-                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block mb-1">
-                  Cost Per Guest
-                </span>
-                <div className="text-xl font-extrabold text-slate-900">
-                  {formatCurrency(
-                    currentPlan.budgetSummary.costPerGuest,
-                    currentPlan.budgetSummary.currency
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-1">
-                  Based on {currentPlan.input.guestCount} invited guests
-                </div>
-              </Card>
-            </div>
-
-            {/* Quick Actions Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="text-xs text-slate-600">
-                Deterministic calculation verified at{" "}
-                <span className="font-mono text-slate-800">
-                  {new Date(currentPlan.budgetSummary.verifiedTimestamp).toLocaleTimeString()}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOptimizeBudget}
-                  leftIcon={<Percent className="w-3.5 h-3.5 text-teal-600" />}
-                >
-                  Optimize Budget (-10%)
-                </Button>
-                <Button
-                  variant="teal"
-                  size="sm"
-                  onClick={() => setIsAddExpenseModalOpen(true)}
-                  leftIcon={<Plus className="w-3.5 h-3.5" />}
-                >
-                  Add Line Item
-                </Button>
-              </div>
-            </div>
-
-            {/* Category Allocations Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {currentPlan.categoryBudgets.map((cat, i) => (
-                <Card key={i} className="p-4">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-bold text-slate-900">{cat.category}</span>
-                    <span className="font-semibold text-slate-700">
-                      {formatCurrency(cat.allocatedAmount, currentPlan.budgetSummary.currency)}
-                    </span>
-                  </div>
-                  <ProgressBar value={cat.percentage} variant="teal" />
-                  <div className="flex justify-between text-[11px] text-slate-500 mt-1.5">
-                    <span>{cat.percentage}% of total</span>
-                    <span className="truncate max-w-[150px]">{cat.notes}</span>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {/* Itemized Expenses Table */}
-            <Card>
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <CardTitle>Itemized Expense Estimates</CardTitle>
-                  <CardDescription>
-                    All values verified with non-negative constraints. Click edit to adjust figures.
-                  </CardDescription>
-                </div>
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    placeholder="Search expenses..."
-                    value={expenseSearch}
-                    onChange={(e) => setExpenseSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="p-0 overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-y border-slate-200 bg-slate-50/70 text-slate-500 uppercase tracking-wider font-semibold">
-                      <th className="py-3 px-4">Item Name</th>
-                      <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4">Priority</th>
-                      <th className="py-3 px-4 text-right">Estimated Cost</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredExpenses.map((exp) => (
-                      <tr key={exp.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-4">
-                          <span className="font-bold text-slate-900 block">{exp.itemName}</span>
-                          <span className="text-[11px] text-slate-500">{exp.rationale}</span>
-                        </td>
-                        <td className="py-3 px-4 font-medium text-slate-700">{exp.category}</td>
-                        <td className="py-3 px-4">
-                          <Badge
-                            variant={
-                              exp.priority === "must-have"
-                                ? "rose"
-                                : exp.priority === "nice-to-have"
-                                ? "violet"
-                                : "secondary"
-                            }
-                            size="sm"
-                          >
-                            {exp.priority}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-900">
-                          {formatCurrency(exp.estimatedCost, currentPlan.budgetSummary.currency)}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openEditExpenseModal(exp)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-slate-100 transition-colors"
-                              title="Edit line item"
-                              aria-label={`Edit ${exp.itemName}`}
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeExpenseItem(currentPlan.id, exp.id)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
-                              title="Remove line item"
-                              aria-label={`Remove ${exp.itemName}`}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-
-            {/* Mandatory Estimate Disclaimer */}
-            <div className="p-4 rounded-xl bg-slate-100/70 text-xs text-slate-500 leading-relaxed">
-              <strong>Advisory Note:</strong> {currentPlan.budgetSummary.disclaimer}
-            </div>
-          </div>
+          <BudgetTab
+            plan={currentPlan}
+            expenseSearch={expenseSearch}
+            setExpenseSearch={setExpenseSearch}
+            filteredExpenses={filteredExpenses}
+            onOptimizeBudget={handleOptimizeBudget}
+            onOpenAddExpenseModal={() => setIsAddExpenseModalOpen(true)}
+            onOpenEditExpenseModal={openEditExpenseModal}
+            onRemoveExpenseItem={removeExpenseItem}
+          />
         )}
 
         {/* Tab 3: Timeline */}
         {activeTab === "timeline" && (
-          <div className="space-y-6">
-            {/* Reschedule Date Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div>
-                <h4 className="text-sm font-bold text-slate-900">Need to change your event date?</h4>
-                <p className="text-xs text-slate-500">
-                  Planora recalculates vendor booking windows and milestones for the new date.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="date"
-                  value={newRescheduleDate}
-                  onChange={(e) => setNewRescheduleDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs text-slate-900 bg-white"
-                />
-                <Button
-                  variant="teal"
-                  size="sm"
-                  onClick={handleReschedule}
-                  disabled={!newRescheduleDate || newRescheduleDate === currentPlan.input.eventDate}
-                >
-                  Reschedule Timeline
-                </Button>
-              </div>
-            </div>
-
-            {/* Timeline Phases */}
-            <div className="space-y-4">
-              {currentPlan.timeline.map((phase, idx) => (
-                <Card key={idx} className="overflow-hidden">
-                  <CardHeader className="bg-slate-50/70 border-b border-slate-100 py-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-teal-800">
-                        {phase.phaseName}
-                      </span>
-                      <Badge variant="outline" size="sm">
-                        {phase.timeWindow}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-                    <div>
-                      <span className="font-bold text-slate-900 block mb-2">Core Milestones:</span>
-                      <ul className="space-y-1.5 text-slate-700">
-                        {phase.milestones.map((m, mIdx) => (
-                          <li
-                            key={mIdx}
-                            className="flex items-center justify-between group p-1.5 rounded-lg hover:bg-slate-50 transition-colors"
-                          >
-                            <div className="flex items-start gap-2 flex-1 min-w-0 pr-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 mt-0.5 shrink-0" />
-                              <span className="text-slate-800 leading-snug break-words">{m}</span>
-                            </div>
-                            <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => moveTimelineMilestone(currentPlan.id, idx, mIdx, "up")}
-                                disabled={mIdx === 0}
-                                className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-20 transition-colors"
-                                title="Move milestone earlier"
-                                aria-label="Move milestone up"
-                              >
-                                <ArrowUp className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => moveTimelineMilestone(currentPlan.id, idx, mIdx, "down")}
-                                disabled={mIdx === phase.milestones.length - 1}
-                                className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-20 transition-colors"
-                                title="Move milestone later"
-                                aria-label="Move milestone down"
-                              >
-                                <ArrowDown className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => openEditMilestoneModal(idx, mIdx, m)}
-                                className="p-1 rounded text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
-                                title="Edit milestone"
-                                aria-label="Edit milestone"
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => removeTimelineMilestone(currentPlan.id, idx, mIdx)}
-                                className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                title="Delete milestone"
-                                aria-label="Delete milestone"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="pt-3">
-                        <button
-                          type="button"
-                          onClick={() => openAddMilestoneModal(idx)}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 hover:text-teal-800 transition-colors"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add Milestone</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="font-bold text-slate-900 block mb-2">Key Deadlines:</span>
-                      <ul className="space-y-1.5 text-slate-700">
-                        {phase.keyDeadlines.map((d, dIdx) => (
-                          <li key={dIdx} className="flex items-start gap-2">
-                            <Clock className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
-                            <span>{d}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <TimelineTab
+            plan={currentPlan}
+            newRescheduleDate={newRescheduleDate}
+            setNewRescheduleDate={setNewRescheduleDate}
+            onReschedule={handleReschedule}
+            onMoveTimelineMilestone={moveTimelineMilestone}
+            onOpenAddMilestoneModal={openAddMilestoneModal}
+            onOpenEditMilestoneModal={openEditMilestoneModal}
+            onRemoveTimelineMilestone={removeTimelineMilestone}
+          />
         )}
 
         {/* Tab 4: Task Checklist */}
         {activeTab === "tasks" && (
-          <div className="space-y-6">
-            {/* Checklist Progress Overview Card */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-900">Checklist Completion Status</span>
-                <span className="font-semibold text-slate-700">
-                  {completedTaskCount} of {currentPlan.tasks.length} tasks completed ({taskProgressPct}%)
-                </span>
-              </div>
-              <ProgressBar value={taskProgressPct} variant="teal" />
-            </div>
-
-            {/* Top Toolbar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => setTaskStatusFilter("all")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    taskStatusFilter === "all" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  All ({currentPlan.tasks.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTaskStatusFilter("pending")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    taskStatusFilter === "pending" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  Pending ({currentPlan.tasks.filter((t) => !t.completed).length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTaskStatusFilter("completed")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    taskStatusFilter === "completed" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  Completed ({completedTaskCount})
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="text"
-                  placeholder="Filter tasks..."
-                  value={taskSearch}
-                  onChange={(e) => setTaskSearch(e.target.value)}
-                  className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-800 bg-white"
-                />
-                <Button
-                  variant="teal"
-                  size="sm"
-                  onClick={() => setIsAddTaskModalOpen(true)}
-                  leftIcon={<Plus className="w-3.5 h-3.5" />}
-                >
-                  Add Task
-                </Button>
-              </div>
-            </div>
-
-            {/* Tasks list */}
-            <div className="space-y-2">
-              {filteredTasks.length === 0 ? (
-                <p className="text-center text-xs text-slate-500 py-10">No tasks match your criteria.</p>
-              ) : (
-                filteredTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => toggleTask(currentPlan.id, task.id)}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer group ${
-                      task.completed
-                        ? "bg-slate-50 border-slate-200/60 opacity-60"
-                        : "bg-white border-slate-200/90 hover:border-teal-400 hover:shadow-xs"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className="mt-0.5 text-teal-600 shrink-0"
-                      aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
-                    >
-                      {task.completed ? (
-                        <CheckSquare className="w-5 h-5 text-teal-600" />
-                      ) : (
-                        <Square className="w-5 h-5 text-slate-300" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-semibold ${
-                          task.completed ? "line-through text-slate-400" : "text-slate-900"
-                        }`}
-                      >
-                        {task.title}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                        <span className="font-medium text-slate-700">{task.category}</span>
-                        <span>•</span>
-                        <span>{task.timelineMarker}</span>
-                        {task.notes && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate max-w-[200px]">{task.notes}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {task.priority === "high" && !task.completed && (
-                      <Badge variant="rose" size="sm">
-                        High Priority
-                      </Badge>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteTask(currentPlan.id, task.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                      title="Delete task"
-                      aria-label={`Delete task ${task.title}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <TasksTab
+            plan={currentPlan}
+            completedTaskCount={completedTaskCount}
+            taskProgressPct={taskProgressPct}
+            taskStatusFilter={taskStatusFilter}
+            setTaskStatusFilter={setTaskStatusFilter}
+            taskSearch={taskSearch}
+            setTaskSearch={setTaskSearch}
+            filteredTasks={filteredTasks}
+            onToggleTask={toggleTask}
+            onDeleteTask={deleteTask}
+            onOpenAddTaskModal={() => setIsAddTaskModalOpen(true)}
+          />
         )}
 
         {/* Tab 5: Vendors */}
         {activeTab === "vendors" && (
-          <div className="space-y-6">
-            {/* Top Toolbar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="text-xs text-slate-600">
-                Managing <span className="font-bold text-slate-900">{currentPlan.vendors.length}</span> key vendor categories for this event.
-              </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    placeholder="Search vendors..."
-                    value={vendorSearch}
-                    onChange={(e) => setVendorSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                  />
-                </div>
-                <Button
-                  variant="teal"
-                  size="sm"
-                  onClick={() => setIsAddVendorModalOpen(true)}
-                  leftIcon={<Plus className="w-3.5 h-3.5" />}
-                >
-                  Add Vendor
-                </Button>
-              </div>
-            </div>
-
-            {/* Vendor Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredVendors.length === 0 ? (
-                <div className="col-span-full py-12 text-center text-xs text-slate-500">
-                  No vendors found matching your search.
-                </div>
-              ) : (
-                filteredVendors.map((ven) => (
-                  <Card key={ven.id} className="p-6 space-y-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <Badge variant="secondary" size="sm" className="mb-1">
-                          {ven.category}
-                        </Badge>
-                        <h4 className="text-base font-bold text-slate-900">{ven.serviceType}</h4>
-                        <span className="text-xs text-slate-500">
-                          Window: {ven.recommendedBookingWindow}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-bold text-slate-900 block">
-                          {formatCurrency(ven.estimatedCost, currentPlan.budgetSummary.currency)}
-                        </span>
-                        <div className="mt-1 flex items-center justify-end gap-1.5">
-                          <Badge
-                            variant={
-                              ven.status === "booked"
-                                ? "teal"
-                                : ven.status === "contacted"
-                                ? "violet"
-                                : "outline"
-                            }
-                            size="sm"
-                          >
-                            {ven.status}
-                          </Badge>
-                          <button
-                            type="button"
-                            onClick={() => openEditVendorModal(ven)}
-                            className="p-1 rounded text-slate-400 hover:text-teal-600 hover:bg-slate-100 transition-colors"
-                            title="Edit vendor"
-                            aria-label={`Edit vendor ${ven.serviceType}`}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeVendor(currentPlan.id, ven.id)}
-                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
-                            title="Remove vendor"
-                            aria-label={`Delete vendor ${ven.serviceType}`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-100 text-xs space-y-2">
-                      <span className="font-bold text-slate-700 block">Key Questions to Ask:</span>
-                      <ul className="list-disc list-inside space-y-1 text-slate-600">
-                        {ven.keyQuestionsToAsk.map((q, idx) => (
-                          <li key={idx}>{q}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
+          <VendorsTab
+            plan={currentPlan}
+            vendorSearch={vendorSearch}
+            setVendorSearch={setVendorSearch}
+            filteredVendors={filteredVendors}
+            onOpenAddVendorModal={() => setIsAddVendorModalOpen(true)}
+            onOpenEditVendorModal={openEditVendorModal}
+            onRemoveVendor={removeVendor}
+          />
         )}
 
-        {/* Tab 6: AI Assistant & Natural Language Plan Revision */}
+        {/* Tab 6: AI Assistant */}
         {activeTab === "ai-assistant" && (
-          <div className="space-y-6">
-            <Card className="border-teal-200/80 bg-gradient-to-br from-white via-white to-teal-50/20">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-teal-800 font-bold text-xs uppercase tracking-wider mb-1">
-                  <Sparkles className="w-4 h-4 text-teal-600" />
-                  <span>Interactive AI Revision Assistant</span>
-                </div>
-                <CardTitle>Refine & Adapt Your Event Plan</CardTitle>
-                <CardDescription>
-                  Instruct Gemini to adjust catering costs, suggest backup rain strategies, or adapt the theme.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                {/* Sample Revision Prompts */}
-                <div>
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-2">
-                    Quick Revision Ideas:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      "Reduce catering costs by 10%",
-                      "Suggest affordable decorations and DIY centerpieces",
-                      "Create a rain and high-wind backup plan",
-                      "Make the event suitable and engaging for young children",
-                      "Adjust the plan for 15 additional guests",
-                    ].map((promptText, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleAiRevision(promptText)}
-                        disabled={isAiLoading}
-                        className="px-3 py-1.5 rounded-xl border border-teal-200 bg-teal-50/60 text-xs font-semibold text-teal-900 hover:bg-teal-100 transition-colors disabled:opacity-50"
-                      >
-                        &quot;{promptText}&quot;
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom revision form */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleAiRevision(revisionPrompt);
-                  }}
-                  className="space-y-3"
-                >
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Custom AI Revision Prompt:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. Substitute high-end flowers with local eucalyptus and fairy lights..."
-                      value={revisionPrompt}
-                      onChange={(e) => setRevisionPrompt(e.target.value)}
-                      disabled={isAiLoading}
-                      className="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-500/10"
-                    />
-                    <Button
-                      type="submit"
-                      variant="teal"
-                      isLoading={isAiLoading}
-                      disabled={!revisionPrompt.trim()}
-                      rightIcon={<Send className="w-4 h-4" />}
-                    >
-                      Apply Revision
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+          <AiAssistantTab
+            isAiLoading={isAiLoading}
+            revisionPrompt={revisionPrompt}
+            setRevisionPrompt={setRevisionPrompt}
+            onAiRevision={handleAiRevision}
+          />
         )}
 
         {/* Modal: Add Custom Expense */}

@@ -156,9 +156,12 @@ export function Navbar() {
         {/* Mobile menu toggle */}
         <div className="flex md:hidden">
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-xl text-slate-600 hover:bg-slate-100"
             aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation-menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -167,7 +170,7 @@ export function Navbar() {
 
       {/* Mobile dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-200 bg-white px-4 pt-2 pb-4 space-y-2">
+        <div id="mobile-navigation-menu" className="md:hidden border-b border-slate-200 bg-white px-4 pt-2 pb-4 space-y-2">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (

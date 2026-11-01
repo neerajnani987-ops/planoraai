@@ -5,10 +5,6 @@ import {
   clearAiPlanCache,
 } from "@/server/gemini";
 import {
-  getUserEvents,
-  createEvent,
-  updateEvent,
-  deleteEvent,
   invalidateUserEventsCache,
   clearUserEventsCache,
 } from "@/server/events-db";
@@ -82,3 +78,4 @@ describe("Performance & Efficiency Optimization Verification", () => {
     });
   });
 });
+

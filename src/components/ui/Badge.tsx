@@ -15,10 +15,10 @@ export function Badge({
 }: BadgeProps) {
   const variantStyles = {
     default: "bg-slate-900 text-white",
-    teal: "bg-teal-50 text-teal-700 border border-teal-200/60",
-    violet: "bg-violet-50 text-violet-700 border border-violet-200/60",
-    amber: "bg-amber-50 text-amber-700 border border-amber-200/60",
-    rose: "bg-rose-50 text-rose-700 border border-rose-200/60",
+    teal: "bg-teal-50 text-teal-800 border border-teal-200/70",
+    violet: "bg-violet-50 text-violet-800 border border-violet-200/70",
+    amber: "bg-amber-50 text-amber-800 border border-amber-200/70 font-semibold",
+    rose: "bg-rose-50 text-rose-800 border border-rose-200/70",
     outline: "border border-slate-300 text-slate-700 bg-white",
     secondary: "bg-slate-100 text-slate-700",
   };

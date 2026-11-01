@@ -24,6 +24,8 @@ export function LoadingState({
 }: LoadingStateProps) {
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={cn(
         "rounded-2xl border border-teal-200/60 bg-gradient-to-b from-teal-50/50 to-white p-8 md:p-12 text-center max-w-xl mx-auto shadow-xl shadow-teal-900/5",
         className

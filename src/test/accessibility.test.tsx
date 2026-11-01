@@ -1,12 +1,14 @@
 import React from "react";
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Alert } from "@/components/ui/Alert";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Modal } from "@/components/ui/Modal";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { Badge } from "@/components/ui/Badge";
 
 describe("Accessibility (a11y) Verification Suite", () => {
   it("renders Button with proper type, loading state, and accessible busy flags", () => {
@@ -92,5 +94,35 @@ describe("Accessibility (a11y) Verification Suite", () => {
     const closeButton = screen.getByRole("button", { name: /close dialog/i });
     expect(closeButton).not.toBeNull();
     expect(closeButton.getAttribute("type")).toBe("button");
+  });
+
+  it("renders LoadingState with role='status' and polite live region", () => {
+    render(<LoadingState title="Generating Plan" />);
+    const status = screen.getByRole("status");
+    expect(status).not.toBeNull();
+    expect(status.getAttribute("aria-live")).toBe("polite");
+    expect(status.textContent).toContain("Generating Plan");
+  });
+
+  it("handles Modal Escape key press to trigger onClose callback", () => {
+    let closed = false;
+    render(
+      <Modal isOpen={true} onClose={() => { closed = true; }} title="Confirm Action">
+        <p>Details</p>
+      </Modal>
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(closed).toBe(true);
+  });
+
+  it("renders Badges with high-contrast styles across semantic variants", () => {
+    const { rerender } = render(<Badge variant="amber">Pending</Badge>);
+    let badge = screen.getByText("Pending");
+    expect(badge.className).toContain("text-amber-800");
+
+    rerender(<Badge variant="teal">Confirmed</Badge>);
+    badge = screen.getByText("Confirmed");
+    expect(badge.className).toContain("text-teal-800");
   });
 });
